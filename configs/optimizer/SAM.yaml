@@ -1,0 +1,6 @@
+_target_: src.optimizer.sam.SAM
+
+lr: 0.01 #default 0.001
+# eps: 1e-08
+weight_decay: 1e-4
+base_optimizer: torch.optim.SGD

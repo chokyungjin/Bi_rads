@@ -1,0 +1,10 @@
+# _target_: src.models.cxr_vision_resnet.resnet50
+# _target_: src.models.cxr_vision_densenet.densenet121
+# _target_: src.models.cxr_vision_efficientnetv2.effnetv2_s
+# _target_: src.models.cxr_vision_inceptionv3.Inception3
+# _target_: src.models.cxr_vision_cait.CaiT oo
+# _target_: src.models.cxr_vision_coat.CoaT
+# _target_: src.models.cxr_vision_convnext.ConvNeXt
+# _target_: src.models.cxr_vision_resmlp.ResMLP oo
+_target_: src.models.cxr_vision_efficientnetb3.efficientnet_b3
+  

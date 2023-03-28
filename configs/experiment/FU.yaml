@@ -1,0 +1,122 @@
+# @package _global_
+defaults:
+  - override /datamodule: mm.yaml
+  - override /model: cxr_fu_text.yaml
+  - override /engine: cxr_mm.yaml
+  - override /optimizer: adamw.yaml
+  - override /scheduler: cosine_annealing.yaml
+  - override /callbacks: wandb.yaml
+  - override /logger: wandb.yaml
+  - override /trainer: default.yaml
+  - override /log_dir: default.yaml
+
+project: "CXR_FU_text"
+name: "230307_clinicalbert" 
+seed: 100
+tokenizer_name: "Tsubasaz/clinical-pubmed-bert-base-128" 
+#"bert-base-uncased"
+#"./pretrained_bert_tf/pretrained_bert_tf/bert_pretrain_output_all_notes_150000.tar.gz"  # "bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12" 
+# biobert "dmis-lab/biobert-v1.1" 
+# datamodule
+datamodule:
+  
+  data_dir: '/mnt/nas252/forGPU/Kyungjin.Cho/_jykim/MuSiC-ViT-main/MuSiC-ViT-main/json/'
+  batch_size: 64
+  num_workers: 4
+  mean: 0.2
+  std: 0.4
+
+  dataset_config:
+    max_words: 128 # M3AE max_text_len = 40, #MGCA max word is 112
+    pretrained_tokenizer: ${tokenizer_name} #"emilyalsentzer/Bio_ClinicalBERT" # "bert-base-uncased" # pubmedgpt: "stanford-crfm/BioMedLM"
+    d_num: 14
+    ch_noch: False
+    gold: False
+    text_name: "_comp_fov_text_v3" #only base "_comp_fov_text_v4"
+    # only_base_text_name: True
+    only_fu_text_name: True
+    # empty_fu_sent: False
+    # empty_fu_sent_dummy: False
+    random_erase: 0.0
+
+  # data augmentation for train
+  transforms:
+    train:
+      resize:
+        height: 224
+        width: 224
+        interpolation: 1
+      random_flip:
+        p: 0.2
+      random_spatial_augment_v1:
+        height: 224
+        width: 224
+        scale: 0.1
+        rotate: 30
+        shear_x: 15
+        shear_y: 15
+        translate_x: 15
+        translate_y: 15
+        p: 0.5
+      random_pixel_augment_v2:
+        n: 2
+        limit_blur: 15
+        limit_gamma: 5
+        limit_brightness: 0.2
+        limit_contrast: 0.2
+        p: 0.5
+  # data augmentation for valid
+    valid:
+      resize:
+        height: 224
+        width: 224
+        interpolation: 1 # 1:linear, 2:bicubic
+    # data augmentation for test
+    test:
+      resize:
+        height: 224
+        width: 224
+        interpolation: 1 # 1:linear, 2:bicubic
+  
+# model parameter
+model:
+  num_labels: 2
+  freeze_bert: False
+  pretrained: ${tokenizer_name}  #"emilyalsentzer/Bio_ClinicalBERT" 
+  output_attentions: True
+  output_hidden_states: True
+
+callbacks:
+  model_checkpoint:
+    monitor: "valid/acc"
+    mode: "max" # "max" means higher metric value is better, can be also "min"
+    save_top_k: 5 # save k best models (determined by above metric)
+    save_last: True # additionaly always save model from last epoch
+    verbose: False
+    dirpath: "checkpoints/"
+    filename: "epoch_{epoch:03d}"
+    auto_insert_metric_name: False
+
+
+trainer:
+  gpus: [1]
+  
+  min_epochs: 1
+  max_epochs: 100
+
+  #amp_backend: "native" # auto mixed precsion
+  #precision: 32
+
+  # gradient_clip_val : 0.5 # gradient cliping, SAM optimizer don't use it
+  # accumulate_grad_batches: 1 # gradient accumulation
+  
+  log_every_n_steps: 10
+  num_sanity_val_steps: 1
+  resume_from_checkpoint: null # ckpt path
+
+scheduler:
+  eta_min: 0.000001
+
+optimizer:
+  lr: 0.00002
+  weight_decay: 0.01

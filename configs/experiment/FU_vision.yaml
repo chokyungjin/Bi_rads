@@ -1,0 +1,152 @@
+# @package _global_
+defaults:
+  - override /datamodule: mm_vision.yaml
+  - override /model: cxr_fu_musicvit.yaml
+  - override /engine: cxr_vision_musicvit.yaml
+  - override /optimizer: adamw.yaml
+  - override /scheduler: cosine_annealing.yaml
+  - override /callbacks: wandb.yaml
+  - override /logger: wandb.yaml
+  - override /trainer: default.yaml
+  - override /log_dir: default.yaml
+
+project: "CXR_FU_vision"
+name: "230305_1_0_1"
+seed: 100
+image_size: 512
+
+# engine
+engine:
+  num_class: 2
+  disease_lambda: 0
+  matching_lambda: 1
+  criterion: ['CE','BCE'] # change, # disease
+
+# datamodule
+datamodule:
+  data_dir: '/mnt/nas252/forGPU/Kyungjin.Cho/_jykim/MuSiC-ViT-main/MuSiC-ViT-main/json/'
+  batch_size: 14
+  num_workers: 4
+  mean: 0.2
+  std: 0.4
+  
+
+  dataset_config:
+    d_num: 14
+    ch_noch: False
+  # data augmentation for train
+  transforms:
+    train:
+      resize:
+        height: ${image_size}
+        width: ${image_size}
+        interpolation: 1
+      random_pixel_augment_music:
+        p: 1
+      # random_flip:
+      #   p: 0.2
+      # random_spatial_augment_v1:
+      #   height: ${image_size}
+      #   width: ${image_size}
+      #   scale: 0.1
+      #   rotate: 30
+      #   shear_x: 15
+      #   shear_y: 15
+      #   translate_x: 15
+      #   translate_y: 15
+      #   p: 0.5
+      # random_pixel_augment_v2:
+      #   n: 2
+      #   limit_blur: 15
+      #   limit_gamma: 5
+      #   limit_brightness: 0.2
+      #   limit_contrast: 0.2
+      #   p: 0.5
+  # data augmentation for valid
+    valid:
+      resize:
+        height: ${image_size}
+        width: ${image_size}
+        interpolation: 1 # 1:linear, 2:bicubic
+    # data augmentation for test
+    test:
+      resize:
+        height: ${image_size}
+        width: ${image_size}
+        interpolation: 1 # 1:linear, 2:bicubic
+    
+# model
+# CMT-Ti
+model:
+  in_channels: 1
+  stem_channels: 16
+  cmt_channelses: [46, 92, 184, 368]
+  pa_channelses: [46, 92, 184, 368]
+  R: 3.6
+  repeats: [2, 2, 10, 2]
+  input_size: ${image_size}
+  sizes: [128, 64, 32, 16]
+  patch_ker: 2
+  patch_str: 2
+  num_label: 2
+  disease_classes: 14
+
+# CMT-XS 23->26, batch 8
+# model:
+#   in_channels: 1
+#   stem_channels: 16
+#   cmt_channelses: [52, 104, 208, 416]
+#   pa_channelses: [52, 104, 208, 416]
+#   R: 3.8
+#   repeats: [3, 3, 12, 3]
+#   input_size: ${image_size}
+#   sizes: [128, 64, 32, 16]
+#   patch_ker: 2
+#   patch_str: 2
+#   num_label: 2
+#   disease_classes: 14
+
+# CMT-B - 23->38, batch 4
+# model:
+#   in_channels: 1
+#   stem_channels: 38
+#   cmt_channelses: [76, 152, 304, 608]
+#   pa_channelses: [76, 152, 304, 608]
+#   R: 4.
+#   repeats: [4, 4, 20, 4]
+#   input_size: ${image_size}
+#   sizes: [128, 64, 32, 16]
+#   patch_ker: 2
+#   patch_str: 2
+#   num_label: 2
+#   disease_classes: 14
+
+callbacks:
+  model_checkpoint:
+    monitor: "valid/change_loss"
+    mode: "min"
+    save_top_k: 10 # save k best models (determined by above metric)
+
+trainer:
+  gpus: [2]
+  
+  min_epochs: 10
+  max_epochs: 100
+
+  #amp_backend: "native" # auto mixed precsion
+  #precision: 32
+
+  # gradient_clip_val : 0.5 # gradient cliping, SAM optimizer don't use it
+  # accumulate_grad_batches: 1 # gradient accumulation
+  
+  log_every_n_steps: 10
+  num_sanity_val_steps: 1
+  resume_from_checkpoint: null # ckpt path
+
+scheduler:
+  # step_size: 100
+  eta_min: 0.000001
+
+optimizer:
+  lr: 6e-5
+  weight_decay: 1e-4

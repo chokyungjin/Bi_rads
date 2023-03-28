@@ -1,0 +1,10 @@
+_target_: src.datamodules.DataModuleMMCXR_vision
+
+data_dir: ''
+batch_size: 4
+num_workers: 4
+mean: 0.2
+std: 0.4
+transforms: 
+dataset_config: 
+

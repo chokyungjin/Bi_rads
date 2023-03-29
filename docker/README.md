@@ -1,9 +1,6 @@
 
     docker build -f fu_pl . -f Dockerfile
 
-
-    $docker build -t chokj_fu . -f Dockerfile
-
     $docker run -ti \
     --gpus all --name chokj_pl \
     -v /home/chokj/mimic:/workspace/datasets/open_dataset/mimic \
